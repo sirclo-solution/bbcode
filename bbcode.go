@@ -91,6 +91,8 @@ func Simplify(root *bbnode.Node) *bbnode.Node {
 		cur.SetParent(parent)
 
 		if (strings.HasPrefix(cur.Value, "[/") || cur.Value == "\n") && (parent != nil) {
+			//close tag
+
 			var prefix string
 			if cur.Value == "\n" {
 				prefix = "[*]"
@@ -98,18 +100,25 @@ func Simplify(root *bbnode.Node) *bbnode.Node {
 				prefix = strings.TrimSuffix(strings.Replace(cur.Value, "/", "", 1), "]")
 			}
 
+			//traverse up find corresponding open tag
 			for tmp := cur.Parent(); tmp != nil; tmp = tmp.Parent() {
+				// cur is close tag, node is open tag if match
 				node := tmp.(*bbnode.Node)
 				if node != nil {
+					//if found
 					if strings.HasPrefix(node.Value, prefix) {
+						//all next node to be at the level of open tag
 						if cur.NextSibling() != nil {
 							next := cur.NextSibling()
+							cur.SetNextSibling(nil)
+
 							node.SetNextSibling(next)
 							next.SetPrevSibling(node)
 
 							if cur.PrevSibling() != nil {
 								prev := cur.PrevSibling()
 								prev.SetNextSibling(nil)
+								cur.SetPrevSibling(nil)
 							}
 							cur = node
 						} else {
@@ -130,7 +139,9 @@ func Simplify(root *bbnode.Node) *bbnode.Node {
 				}
 			}
 		} else if strings.HasPrefix(cur.Value, "[") {
+			//open tag
 			if cur.NextSibling() != nil {
+				//moving next sibling to be a child of current
 				parent = cur
 				next := cur.NextSibling().(*bbnode.Node)
 				cur.AddChild(next)
@@ -160,6 +171,7 @@ func NewSibling(node *bbnode.Node, t string) *bbnode.Node {
 	return res
 }
 
+//string parsed into token of [tag] or text
 func Parse(input string, mode string) *bbnode.Node {
 	root := bbnode.Node{}
 
